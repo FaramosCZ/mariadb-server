@@ -1983,8 +1983,6 @@ int ha_sphinx::Connect ( const char * sHost, ushort uPort )
 	int iSockaddrSize = 0;
 	struct sockaddr * pSockaddr = NULL;
 
-	in_addr_t ip_addr;
-
 	if ( uPort )
 	{
 		iDomain = AF_INET;
@@ -1996,10 +1994,7 @@ int ha_sphinx::Connect ( const char * sHost, ushort uPort )
 		sin.sin_port = htons(uPort);
 
 		// prepare host address
-		if ( (int)( ip_addr = inet_addr(sHost) )!=(int)INADDR_NONE )
-		{
-			memcpy ( &sin.sin_addr, &ip_addr, sizeof(ip_addr) );
-		} else
+		if ( inet_pton ( AF_INET, sHost, &sin.sin_addr ) <= 0 )
 		{
 			int tmp_errno;
 			bool bError = false;

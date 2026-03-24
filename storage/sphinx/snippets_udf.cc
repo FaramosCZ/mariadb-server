@@ -360,8 +360,6 @@ int CSphUrl::Connect()
 	int iSockaddrSize = 0;
 	struct sockaddr * pSockaddr = NULL;
 
-	in_addr_t ip_addr;
-
 	if ( m_iPort )
 	{
 		iDomain = AF_INET;
@@ -373,16 +371,14 @@ int CSphUrl::Connect()
 		sin.sin_port = htons ( m_iPort );
 
 		// resolve address
-		if ( (int)( ip_addr = inet_addr ( m_sHost ) )!=(int)INADDR_NONE )
-			memcpy ( &sin.sin_addr, &ip_addr, sizeof(ip_addr) );
-		else
+		if ( inet_pton ( AF_INET, m_sHost, &sin.sin_addr ) <= 0 )
 		{
 			int tmp_errno;
 			bool bError = false;
 
 			struct addrinfo *hp = NULL;
 			tmp_errno = getaddrinfo ( m_sHost, NULL, NULL, &hp );
-			if ( !tmp_errno || !hp || !hp->ai_addr )
+			if ( tmp_errno || !hp || !hp->ai_addr )
 			{
 				bError = true;
 				if ( hp )
@@ -398,7 +394,8 @@ int CSphUrl::Connect()
 				return -1;
 			}
 
-			memcpy ( &sin.sin_addr, hp->ai_addr, Min ( sizeof(sin.sin_addr), (size_t)hp->ai_addrlen ) );
+			struct sockaddr_in *in = (sockaddr_in *)hp->ai_addr;
+			memcpy ( &sin.sin_addr, &in->sin_addr, Min ( sizeof(sin.sin_addr), sizeof(in->sin_addr) ) );
 			freeaddrinfo ( hp );
 		}
 	} else
