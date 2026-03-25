@@ -1,0 +1,28 @@
+#
+# MDEV-39169: resolveip IPv6 support
+#
+#
+# IPv4 special addresses (deterministic, no DNS needed)
+#
+Broadcast
+Null-IP-Addr
+#
+# IPv4 reverse lookup
+#
+Host name of 127.0.0.1 is HOSTNAME
+#
+# IPv4 reverse lookup (silent mode)
+#
+HOSTNAME
+#
+# IPv6 reverse lookup
+#
+Host name of ::1 is HOSTNAME
+#
+# IPv6 reverse lookup (silent mode)
+#
+HOSTNAME
+#
+# Error: invalid hostname
+#
+resolveip: Unable to find hostid for 'nonexistent.invalid': NAME_RESOLUTION_ERROR

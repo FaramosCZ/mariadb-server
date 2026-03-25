@@ -1,0 +1,37 @@
+--echo #
+--echo # MDEV-39169: resolveip IPv6 support
+--echo #
+
+--source include/not_windows.inc
+--source include/check_ipv6.inc
+
+--echo #
+--echo # IPv4 special addresses (deterministic, no DNS needed)
+--echo #
+--exec $MYSQL_RESOLVEIP 255.255.255.255
+--exec $MYSQL_RESOLVEIP 0.0.0.0
+
+--echo #
+--echo # IPv4 reverse lookup
+--echo #
+--exec $MYSQL_RESOLVEIP 127.0.0.1 | sed 's/Host name of 127\.0\.0\.1 is .*/Host name of 127.0.0.1 is HOSTNAME/'
+
+--echo #
+--echo # IPv4 reverse lookup (silent mode)
+--echo #
+--exec $MYSQL_RESOLVEIP -s 127.0.0.1 | sed 's/.*/HOSTNAME/'
+
+--echo #
+--echo # IPv6 reverse lookup
+--echo #
+--exec $MYSQL_RESOLVEIP ::1 | sed 's/Host name of ::1 is .*/Host name of ::1 is HOSTNAME/'
+
+--echo #
+--echo # IPv6 reverse lookup (silent mode)
+--echo #
+--exec $MYSQL_RESOLVEIP -s ::1 | sed 's/.*/HOSTNAME/'
+
+--echo #
+--echo # Error: invalid hostname
+--echo #
+--exec $MYSQL_RESOLVEIP nonexistent.invalid 2>&1 | sed "s|.*Unable to find hostid for 'nonexistent.invalid': .*|resolveip: Unable to find hostid for 'nonexistent.invalid': NAME_RESOLUTION_ERROR|"
