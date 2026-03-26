@@ -8673,8 +8673,16 @@ public:
     m_thd->set_binlog_flags_for_alter(0);
     m_thd->set_binlog_start_alter_seq_no(0);
 #ifdef WITH_WSREP
-    if (wsrep_to_isolation)
-      wsrep_to_isolation_end(m_thd);
+    try
+    {
+      if (wsrep_to_isolation)
+        wsrep_to_isolation_end(m_thd);
+    }
+    catch (const std::exception& e)
+    {
+      WSREP_WARN("~Write_log_with_flags(): %s",
+                 e.what());
+    }
 #endif
   }
 

@@ -2711,8 +2711,20 @@ public:
       delete row;
     if (table)
     {
+#ifdef WITH_WSREP
+      try
+      {
+#endif
       close_thread_tables(&thd);
       thd.mdl_context.release_transactional_locks(&thd);
+#ifdef WITH_WSREP
+      }
+      catch (const std::exception& e)
+      {
+        WSREP_WARN("~Delayed_insert(): %s",
+                   e.what());
+      }
+#endif
     }
     mysql_mutex_destroy(&mutex);
     mysql_cond_destroy(&cond);

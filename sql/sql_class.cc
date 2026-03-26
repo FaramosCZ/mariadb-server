@@ -1893,7 +1893,20 @@ THD::~THD()
   delete wsrep_rgi;
 #endif
   if (!free_connection_done)
+  {
+#ifdef WITH_WSREP
+    try
+    {
+#endif
     free_connection();
+#ifdef WITH_WSREP
+    }
+    catch (const std::exception& e)
+    {
+      WSREP_WARN("~THD(): free_connection(): %s", e.what());
+    }
+#endif
+  }
 
 #ifdef WITH_WSREP
   mysql_cond_destroy(&COND_wsrep_thd);

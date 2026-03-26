@@ -10649,8 +10649,19 @@ TR_table::~TR_table()
 {
   if (table)
   {
+#ifdef WITH_WSREP
+    try
+    {
+#endif
     thd->temporary_tables= NULL;
     close_log_table(thd, open_tables_backup);
+#ifdef WITH_WSREP
+    }
+    catch (const std::exception& e)
+    {
+      WSREP_WARN("~TR_table(): %s", e.what());
+    }
+#endif
   }
   delete open_tables_backup;
 }
