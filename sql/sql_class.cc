@@ -27,6 +27,7 @@
 #include "mariadb.h"
 #include "sql_priv.h"
 #include "sql_class.h"
+#include <exception>
 #include "sql_cache.h"                          // query_cache_abort
 #include "sql_base.h"                           // close_thread_tables
 #include "sql_time.h"                         // date_time_format_copy
@@ -1893,7 +1894,22 @@ THD::~THD()
   delete wsrep_rgi;
 #endif
   if (!free_connection_done)
-    free_connection();
+  {
+    try
+    {
+      free_connection();
+    }
+    catch (const std::exception& e)
+    {
+      sql_print_warning("~THD(): free_connection(): %s",
+                        e.what());
+    }
+    catch (...)
+    {
+      sql_print_warning("~THD(): free_connection():"
+                        " caught unknown exception");
+    }
+  }
 
 #ifdef WITH_WSREP
   mysql_cond_destroy(&COND_wsrep_thd);

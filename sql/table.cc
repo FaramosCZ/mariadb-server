@@ -58,6 +58,7 @@
 #endif
 #include "log_event.h"           // MAX_TABLE_MAP_ID
 #include "sql_class.h"
+#include <exception>
 #include "opt_hints.h"
 
 /* For MySQL 5.7 virtual fields */
@@ -10649,8 +10650,20 @@ TR_table::~TR_table()
 {
   if (table)
   {
-    thd->temporary_tables= NULL;
-    close_log_table(thd, open_tables_backup);
+    try
+    {
+      thd->temporary_tables= NULL;
+      close_log_table(thd, open_tables_backup);
+    }
+    catch (const std::exception& e)
+    {
+      sql_print_warning("~TR_table(): %s", e.what());
+    }
+    catch (...)
+    {
+      sql_print_warning("~TR_table():"
+                        " caught unknown exception");
+    }
   }
   delete open_tables_backup;
 }
