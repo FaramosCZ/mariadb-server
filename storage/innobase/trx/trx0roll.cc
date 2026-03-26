@@ -181,7 +181,24 @@ dberr_t trx_t::rollback(const undo_no_t *savept) noexcept
   }
 #ifdef WITH_WSREP
   if (!savept && is_wsrep() && wsrep_thd_is_SR(mysql_thd))
-    wsrep_handle_SR_rollback(nullptr, mysql_thd);
+  {
+    try
+    {
+      wsrep_handle_SR_rollback(nullptr, mysql_thd);
+    }
+    catch (const std::exception &e)
+    {
+      sql_print_warning(
+        "InnoDB: wsrep_handle_SR_rollback(): %s",
+        e.what());
+    }
+    catch (...)
+    {
+      sql_print_warning(
+        "InnoDB: wsrep_handle_SR_rollback():"
+        " caught unknown exception");
+    }
+  }
 #endif /* WITH_WSREP */
   return rollback_low(savept);
 }
