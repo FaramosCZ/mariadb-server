@@ -47,6 +47,7 @@ Created 1/8/1996 Heikki Tuuri
 #include "srv0start.h"
 #include "log.h"
 #include "sql_class.h"
+#include <exception>
 
 /*****************************************************************//**
 Based on a table object, this function builds the entry to be inserted
@@ -1369,6 +1370,29 @@ dberr_t dict_sys_t::create_or_check_sys_tables() noexcept
   if (sys_tables_exist())
     return DB_SUCCESS;
 
+  try
+  {
+    return create_or_check_sys_tables_impl();
+  }
+  catch (const std::exception &e)
+  {
+    sql_print_error(
+      "InnoDB: create_or_check_sys_tables(): %s",
+      e.what());
+    return DB_ERROR;
+  }
+  catch (...)
+  {
+    sql_print_error(
+      "InnoDB: create_or_check_sys_tables():"
+      " caught unknown exception");
+    return DB_ERROR;
+  }
+}
+
+
+dberr_t dict_sys_t::create_or_check_sys_tables_impl()
+{
   trx_t *trx= trx_create();
   trx_start_for_ddl(trx);
 
