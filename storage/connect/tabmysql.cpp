@@ -683,7 +683,7 @@ bool TDBMYSQL::MakeCommand(PGLOBAL g)
 
 
     // Make a lower case copy of the originale query
-    qrystr = (char*)PlugSubAlloc(g, NULL, strlen(Qrystr) + 5);
+    qrystr = (char*)PlugSubAlloc(g, NULL, strlen(Qrystr) + 64);
     strlwr(strcpy(qrystr, Qrystr));
 
     // Check whether the table name is equal to a keyword
