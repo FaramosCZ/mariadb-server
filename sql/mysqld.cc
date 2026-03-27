@@ -2702,6 +2702,74 @@ err:
 }
 
 
+#ifdef HAVE_SYS_UN_H
+/*
+  Check if an existing Unix socket file is actively in use.
+  If another process is listening on the socket, abort startup.
+  If the socket is stale (no listener), remove it so we can
+  re-bind.
+*/
+static void handle_stale_unix_socket(const char *path)
+{
+  MY_STAT stat_buf;
+
+  if (!my_stat(path, &stat_buf, MYF(0)))
+    return;  /* File does not exist */
+
+  if (S_ISSOCK(stat_buf.st_mode))
+  {
+    MYSQL_SOCKET test_sock;
+    test_sock= mysql_socket_socket(key_socket_unix,
+                                   AF_UNIX, SOCK_STREAM, 0);
+    if (mysql_socket_getfd(test_sock) < 0)
+    {
+      sql_print_error("Socket file '%s' exists, but a probe "
+                      "socket could not be created to verify "
+                      "whether it is active. Refusing to "
+                      "remove it. Aborting.", path);
+      unireg_abort(1);
+    }
+
+    struct sockaddr_un test_addr;
+    bzero((char*) &test_addr, sizeof(test_addr));
+    test_addr.sun_family= AF_UNIX;
+    strmov(test_addr.sun_path, path);
+    if (mysql_socket_connect(test_sock,
+          (struct sockaddr *) &test_addr,
+          sizeof(test_addr)) == 0)
+    {
+      /* Socket is active - another process is listening */
+      mysql_socket_close(test_sock);
+      sql_print_error("Another process is already listening "
+                      "on the socket file '%s'. "
+                      "Aborting.", path);
+      unireg_abort(1);
+    }
+    if (socket_errno == EACCES)
+    {
+      mysql_socket_close(test_sock);
+      sql_print_error("Permission denied accessing socket "
+                      "file '%s'. Cannot verify or replace "
+                      "it. Aborting.", path);
+      unireg_abort(1);
+    }
+    if (socket_errno != ECONNREFUSED && socket_errno != ENOENT)
+    {
+      mysql_socket_close(test_sock);
+      sql_print_error("Unexpected error checking socket "
+                      "file '%s' (errno: %d). Refusing to "
+                      "remove it. Aborting.",
+                      path, (int) socket_errno);
+      unireg_abort(1);
+    }
+    mysql_socket_close(test_sock);
+  }
+  /* File is stale or not a socket - safe to remove */
+  (void) unlink(path);
+}
+#endif /* HAVE_SYS_UN_H */
+
+
 static void network_init(void)
 {
 #ifdef HAVE_SYS_UN_H
@@ -2779,7 +2847,7 @@ static void network_init(void)
     else
 #endif
     {
-      (void) unlink(mysqld_unix_port);
+      handle_stale_unix_socket(mysqld_unix_port);
       port_len= sizeof(UNIXaddr);
     }
     arg= 1;
